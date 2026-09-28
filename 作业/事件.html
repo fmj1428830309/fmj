@@ -1,0 +1,77 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+
+<style>
+    #div1 {
+        width: 200px;
+        height: 100px;
+        border: 1px solid rgb(203, 45, 158);
+        text-align: center;
+        line-height: 100px;
+        background-color: rgb(36, 225, 42);
+    }
+</style>
+<script>
+const initialize = () => {
+     alert("页面已加载完成！");
+}
+function changeText1() {
+    var input = document.getElementById("myInput");
+    alert("输入的用户名是: " + input.value);
+}
+function changeText() {
+    var select = document.getElementById("mySelect");
+    var selectedOption = select.options[select.selectedIndex].text;
+    if (selectedOption != "") {
+        alert("选择的地区是: " + selectedOption);
+    }
+}
+function moveBy() {
+    var div = document.getElementById("div1");
+    div.innerHTML = "鼠标悬停";
+    div.style.backgroundColor = "yellow";
+}
+function moved() {
+    var div = document.getElementById("div1");
+    div.innerHTML = "鼠标悬停";
+    div.style.backgroundColor = "rgb(384,34,34)";
+}
+
+</script>
+<body onload="initialize()">
+
+<div>   
+    <span>这是一个段落。</span>
+    <input type="text" id="myInput" >
+    <input type="button" onclick="changeText1()" value="点击提示">
+   </div>
+<div>   
+    <span>请选择地区</span>
+    <select id="mySelect" onchange="changeText()">
+        <option value="">请选择</option>
+        <option value="beijing">北京</option>
+        <option value="shanghai">上海</option>
+        <option value="guangzhou">广州</option>
+    </select>
+</div>
+<div>
+    <div id="div1" onmouseover="moveBy()" onmouseout="moved()">鼠标悬停</div>
+</body>
+</html>
+1、JS如何定义变量？
+
+2、JS普通函数如何编写？ 箭头函数如何编写
+
+3、JS常用事件有哪些？
+
+4、页面如何使用Vue？
+
+5、写一个JSON格式的数据，存储多个员工
+
+6、用v-for在页面通过table标签遍历员工

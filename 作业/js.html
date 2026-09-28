@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script>
+function myFunction() {
+
+    document.getElementById("demo").innerHTML = "段落已被更改。";
+}
+function changeText() {
+    var input = document.getElementById("myInput");
+    alert("输入的用户名是: " + input.value);
+}
+for (var i = 0; i < 5; i++) {
+    console.log(i);
+}
+const numbers = [1, 2, 3, 4, 5];
+const doubled = numbers.map(function(number) {
+    return number * 2;
+});
+
+console.log(doubled);
+
+// function findMax() {
+//   var i;
+//   var max = -Infinity;
+//   for(i = 0; i < arguments.length; i++) {
+//     if (arguments[i] > max) {
+//       max = arguments[i];
+//     }
+//   }
+//   return max;
+// } 
+// document.getElementById("demo").innerHTML = findMax(4, 5, 6);
+
+function addNumbers(a, b) {
+  return a + b;
+}
+var result = addNumbers(5, 10);
+console.log(result);
+function greet(name) {
+  console.log("Hello, " + name + "!");
+}
+greet("Alice"); 
+</script>
+</head>
+<body>
+<h2>Head 中的 JavaScript</h2>
+
+<p id="demo">一个段落。</p>
+
+<button type="button" onclick="myFunction()">试一试</button>
+<div>
+    <span>这是一个段落。</span>
+    <input type="text" id="myInput" username="用户名">
+    <input type="button" onclick="changeText()" value="点击提示">
+
+</div>
+</body>
+</html>

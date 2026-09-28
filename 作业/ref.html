@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Vue Template</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        background: #f5f7fa;
+        margin: 0;
+        padding: 40px;
+      }
+
+      #app {
+        max-width: 500px;
+        margin: 0 auto;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        padding: 24px;
+      }
+
+      h1 {
+        color: #2c3e50;
+        margin-bottom: 16px;
+      }
+
+      .input-row {
+        display: flex;
+        gap: 12px;
+        margin-bottom: 20px;
+      }
+
+      input {
+        flex: 1;
+        padding: 10px 12px;
+        border: 1px solid #dfe6e9;
+        border-radius: 8px;
+        font-size: 14px;
+      }
+
+      button {
+        padding: 10px 16px;
+        border: none;
+        border-radius: 8px;
+        background: #42b983;
+        color: #fff;
+        cursor: pointer;
+      }
+
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+      }
+
+      li {
+        padding: 10px 0;
+        border-bottom: 1px solid #eef2f7;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <h1>{{ title }}</h1>
+
+      <div class="input-row">
+        <input v-model="message" type="text" placeholder="请输入内容" />
+        <button @click="addItem">添加</button>
+      </div>
+
+      <ul>
+        <li v-for="(item, index) in list" :key="index">{{ index + 1 }}. {{ item }}</li>
+      </ul>
+    </div>
+
+    <script>
+      new Vue({
+        el: '#app',
+        data: {
+          title: 'Vue 示例模板',
+          message: '',
+          list: ['Vue', '模板', '示例']
+        },
+        methods: {
+          addItem() {
+            const value = this.message.trim();
+            if (!value) return;
+            this.list.push(value);
+            this.message = '';
+          }
+        }
+      });
+    </script>
+  </body>
+</html>

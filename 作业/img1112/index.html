@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <!-- 导入样式 -->
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css" />
+    <!-- 导入 Vue 3 -->
+    <script src="//unpkg.com/vue@3"></script>
+    <!-- 导入组件库 -->
+    <script src="//unpkg.com/element-plus"></script>
+    <!--导入axios-->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+    <!--浮窗样式-->
+    <style>
+        /* 修改数据弹窗 */
+        /* 遮罩层：铺满整个屏幕 */
+        .modal-mask {
+        position: fixed;
+        inset: 0;              /* 等同于 top:0; right:0; bottom:0; left:0 */
+        background: rgba(0, 0, 0, 0.5);  /* 半透明黑 */
+        display: flex;
+        justify-content: center;  /* 水平居中 */
+        align-items: center;      /* 垂直居中 */
+        z-index: 999;
+        }
+
+        /* 弹窗本体 */
+        .modal-box {
+        background: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        width: 500px;
+        max-width: 90%;
+        }
+
+        /* 增加数据的弹窗 */
+        /* 遮罩层：铺满整个屏幕 */
+        .modal-mask1 {
+        position: fixed;
+        inset: 0;              /* 等同于 top:0; right:0; bottom:0; left:0 */
+        background: rgba(0, 0, 0, 0.5);  /* 半透明黑 */
+        display: flex;
+        justify-content: center;  /* 水平居中 */
+        align-items: center;      /* 垂直居中 */
+        z-index: 999;
+        }
+
+        /* 弹窗本体 */
+        .modal-box1 {
+        background: #fff;
+        padding: 24px;
+        border-radius: 8px;
+        width: 500px;
+        max-width: 90%;
+        }
+
+    </style>
+
+
+</head>
+<body>
+
+    <!--想要使用vue的div-->
+    <div id="app">
+
+        <el-table :data="goods_data" style="width: 100%">
+            <el-table-column label="id" prop="goods_id"></el-table-column>
+            <el-table-column label="title" prop="title"></el-table-column>
+            <el-table-column label="price" prop="price"></el-table-column>
+            <el-table-column label="stock" prop="stock"></el-table-column>
+
+            <!-- @vue-generic {User} -->
+            <el-table-column align="right">
+            <template #header>
+                <!-- 增加数据-->
+                <el-button type="primary" @click="onAdd">新增</el-button>
+                <el-input
+                      v-model.number="search"
+                      size="small"
+                      placeholder="搜索"
+                      @keyup.enter="onSearch"
+                >
+                  <template #append>
+                    <el-button @click="onSearch">搜索</el-button>
+                  </template>
+                </el-input>
+              </template>
+
+                <template #default="scope">
+                    <el-button size="small" @click="handleEdit(scope.$index, scope.row)">
+                    Edit
+                    </el-button>
+                    <el-button
+                    size="small"
+                    type="danger"
+                    @click="handleDelete(scope.$index, scope.row)"
+                    >
+                    Delete
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+            <!--修改表单--><!--id title price stock-->
+            <div class="modal-mask" v-if="show">
+                <div class="modal-box">
+                    <el-form :model="form" label-width="auto">
+
+                    <!-- <el-form-item label="id">
+                        <el-input v-model="form.id" />
+                    </el-form-item> -->
+
+                    <el-form-item label="title">
+                        <el-input v-model="form.title" />
+                    </el-form-item>
+
+                    <el-form-item label="price">
+                        <el-input v-model.number="form.price" />
+                    </el-form-item>
+
+                    <el-form-item label="stock">
+                        <el-input v-model.number="form.stock" />
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" @click="onSubmit">编辑</el-button>
+                        <el-button @click="onCancel">取消</el-button>
+                    </el-form-item>
+
+                    </el-form>
+                </div>
+            </div>
+
+            <!-- 增加表单 -->
+            <div class="modal-mask1" v-if="show1">
+                <div class="modal-box1">
+                    <el-form :model="form" label-width="auto">
+
+                    <!-- <el-form-item label="id">
+                        <el-input v-model="form.id" />
+                    </el-form-item> -->
+                    <el-form-item label="title">
+                        <el-input v-model="form.title" />
+                    </el-form-item>
+
+                    <el-form-item label="price">
+                        <el-input v-model.number="form.price" />
+                    </el-form-item>
+
+                    <el-form-item label="stock">
+                        <el-input v-model.number="form.stock" />
+                    </el-form-item>
+
+                    <el-form-item>
+                        <el-button type="primary" @click="handleAdd">添加</el-button>
+                        <el-button @click="onAddCancel">取消</el-button>
+                    </el-form-item>
+
+                    </el-form>
+                </div>
+            </div>
+
+
+    </div>
+
+    <script>
+
+        const {createApp,ref,onMounted} = Vue
+
+        const app = createApp({
+            setup(){
+
+                // 后端传递过来的数据存储地方
+                const goods_data = ref([])
+
+                //前端暂存数据的地方
+                const form = ref({
+                        "title":"",
+                        "price":"",
+                        "stock":"",
+                    })
+
+                //初始化和刷新页面数据,获取全部数据
+                const initData=() =>{
+                    axios.get("/goods").then((res)=>{
+                        goods_data.value = res.data
+                    })
+                }
+
+                onMounted(()=>{
+                    initData()
+                })
+
+                //清空form数据
+                const reset = () =>{
+                    form.value = {
+                        "title":"",
+                        "price":"",
+                        "stock":"",
+                    }
+                }
+
+                //按id搜索
+                const search = ref('')
+                const onSearch = async () => {
+                  if (!search.value) {
+                      // 搜索框为空，直接查全部
+                      initData()
+                      return
+                  }
+                  const res = await axios.get(`/goods/${search.value}`)
+                  if (res.data && res.data.goods_id) {
+                      goods_data.value = [res.data]
+                  } else {
+                      goods_data.value = []
+                      alert("未找到该商品")
+                  }
+
+              }
+
+                //增加数据
+                const show1 = ref(false)
+                const onAdd = () =>{
+                    //先清理数据
+                    reset()
+                    show1.value = true
+                }
+                // 在弹窗里面处理增加数据的逻辑
+                //点击添加按钮
+                const handleAdd = async () => {
+                    axios.post("/goods",form.value).then((res)=>{
+                            initData()
+                        show1.value = false
+                        alert("添加成功")
+                    })
+                }
+                //点击取消按钮
+                const onAddCancel = () =>{
+                    alert("取消成功")
+                    reset()
+                    show1.value = false
+                }
+
+                //删除数据
+                const EditingId = ref(-1)
+                //这里index和row是ElementPlus选取的模板中复制下来
+                const handleDelete = async (index, row) => {
+                    const ok = window.confirm("确定要删除吗")
+                    if(ok){
+                        let temp = {}
+                        Object.assign(temp,row)
+                        EditingId.value = temp.goods_id
+
+                       axios.delete(`/goods/${EditingId.value}`).then((res)=>{
+                                alert("删除成功")
+                                initData()
+                        })
+                    }
+                }
+
+                // 修改数据
+                const show = ref(false)
+                const handleEdit = (index, row) => {
+                    show.value = true
+
+                    let temp = {}
+                    Object.assign(temp,row)
+                    form.value = temp
+
+                    // json 转字符串
+                    // debugger
+                    // let rowStr = JSON.stringify(row)
+                    // let rowObj = JSON.parse(rowStr)
+                    // form.value = rowObj
+                    EditingId.value = temp.goods_id
+                }
+                //点击编辑按钮
+                const onSubmit = async () => {
+                    const { title, price, stock } = form.value
+                    axios.put(`/goods/${EditingId.value}`, { title, price, stock }).then((res)=>{
+                                alert("编辑成功")
+                                initData()
+                    })
+                    show.value = false
+                }
+                //点击取消按钮
+                const onCancel = () => {
+                    show.value = false
+                    reset()
+                    alert("编辑取消")
+                }
+
+                return{
+                    goods_data,
+                    form,
+                    search,
+                    show,
+                    show1,
+                    handleEdit,
+                    handleDelete,
+                    onSubmit,
+                    onCancel,
+                    onAdd,
+                    handleAdd,
+                    onAddCancel,
+                    onSearch,
+                }
+            }
+        })
+
+        app.use(ElementPlus)
+        app.mount("#app")
+
+    </script>
+
+</body>
+</html>

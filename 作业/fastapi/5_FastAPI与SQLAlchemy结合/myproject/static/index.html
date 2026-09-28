@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>部门管理系统 · FastAPI + SQLAlchemy</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --danger: #ef4444;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #1e293b;
+      --muted: #64748b;
+      --border: #e2e8f0;
+    }
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 {
+      font-size: 28px;
+      margin-bottom: 4px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .subtitle { color: var(--muted); margin-bottom: 28px; font-size: 14px; }
+    .card {
+      background: var(--card);
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 16px; margin-bottom: 16px; color: var(--primary); }
+    .form-row { display: flex; gap: 12px; flex-wrap: wrap; }
+    .form-row input {
+      flex: 1;
+      min-width: 160px;
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      transition: border .15s;
+    }
+    .form-row input:focus { border-color: var(--primary); }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: opacity .15s, transform .05s;
+    }
+    button:active { transform: scale(.97); }
+    button:hover { opacity: .9; }
+    .btn-primary { background: var(--primary); color: #fff; }
+    .btn-danger { background: var(--danger); color: #fff; padding: 6px 12px; font-size: 13px; }
+    .btn-ghost { background: #eef2ff; color: var(--primary); padding: 6px 12px; font-size: 13px; margin-right: 6px; }
+    .btn-refresh { background: #fff; color: var(--primary); border: 1px solid var(--primary); margin-left: auto; }
+    .table-head {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    th { color: var(--muted); font-weight: 600; font-size: 13px; }
+    tr:hover td { background: #f8fafc; }
+    .badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: var(--primary);
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+    }
+    /* 员工字段多，用网格排，一行三个 */
+    .emp-form {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .emp-form input, .emp-form select {
+      padding: 10px 14px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-size: 14px;
+      outline: none;
+      width: 100%;
+    }
+    .emp-form input:focus, .emp-form select:focus { border-color: var(--primary); }
+    .tip { color: var(--muted); font-size: 12px; margin-top: 10px; }
+    #detail { min-height: 24px; font-size: 14px; color: var(--text); }
+    #detail .empty { color: var(--muted); }
+    #msg { font-size: 13px; margin-top: 12px; min-height: 18px; }
+    .ok { color: #16a34a; }
+    .err { color: var(--danger); }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🏢 部门管理系统</h1>
+    <p class="subtitle">前端页面（纯 HTML + Fetch）⇄ 第5章 FastAPI + SQLAlchemy 接口</p>
+
+    <!-- 新增部门 -->
+    <div class="card">
+      <h2>➕ 新增部门</h2>
+      <div class="form-row">
+        <input id="inputName" type="text" placeholder="部门名称（必填）">
+        <input id="inputLoc" type="text" placeholder="部门简介（必填）">
+        <button class="btn-primary" onclick="createDepartment()">新增</button>
+      </div>
+      <div id="msg"></div>
+    </div>
+
+    <!-- 部门列表 -->
+    <div class="card">
+      <div class="table-head">
+        <h2>📋 部门列表</h2>
+        <button class="btn-refresh" onclick="loadDepartments()">刷新</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>部门名称</th><th>部门简介</th><th>操作</th></tr>
+        </thead>
+        <tbody id="tbody">
+          <tr><td colspan="4" style="color:var(--muted)">加载中…</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 部门详情 -->
+    <div class="card">
+      <h2>🔍 部门详情（点击上方「详情」查看）</h2>
+      <div id="detail"><span class="empty">尚未查看任何部门</span></div>
+    </div>
+
+    <!-- 员工列表 -->
+    <div class="card">
+      <div class="table-head">
+        <h2>👥 员工列表（真实表 t_employee）</h2>
+        <button class="btn-refresh" onclick="loadEmployees()">刷新</button>
+      </div>
+      <table>
+        <thead>
+          <tr><th>ID</th><th>姓名</th><th>薪资</th><th>性别</th><th>手机</th><th>部门编号</th><th>操作</th></tr>
+        </thead>
+        <tbody id="empTbody">
+          <tr><td colspan="7" style="color:var(--muted)">加载中…</td></tr>
+        </tbody>
+      </table>
+      <div id="empMsg" style="font-size:13px; margin-top:12px; min-height:18px;"></div>
+    </div>
+
+    <!-- 新增员工 -->
+    <div class="card">
+      <h2>➕ 新增员工</h2>
+      <div class="emp-form">
+        <input id="eName"    placeholder="姓名 *（中文 2~20 字）">
+        <input id="eSalary"  placeholder="薪资 *（如 8000.00）">
+        <input id="eBirth"   type="date" title="出生日期 *">
+        <select id="eGender" title="性别 *">
+          <option value="男">男</option>
+          <option value="女">女</option>
+        </select>
+        <input id="ePhone"   placeholder="手机号 *（11 位）">
+        <input id="eEmail"   placeholder="邮箱 *">
+        <input id="eAddr"    placeholder="地址 *">
+        <input id="eWork"    placeholder="工作地点 *">
+        <input id="eHire"    type="date" title="入职日期 *">
+        <input id="eBonus"   placeholder="奖金比例（选填，如 0.2）">
+        <input id="eJob"     placeholder="职位编号（选填）">
+        <input id="eMgr"     placeholder="领导编号（选填）">
+        <input id="eDept"    placeholder="部门编号（选填）">
+      </div>
+      <div style="margin-top:14px">
+        <button class="btn-primary" onclick="createEmployee()">新增员工</button>
+      </div>
+      <p class="tip">带 * 的是数据库里 NOT NULL 的字段，必须填。编号类填了就必须是表里存在的值，否则外键会报错。</p>
+    </div>
+  </div>
+
+  <script>
+    // 同源请求：页面由哪个服务提供，接口就走哪个服务（相对路径自动带上主机和端口）。
+    // 原来写死 http://127.0.0.1:8000，服务一换端口或没启动就直接 Failed to fetch。
+    const API = '';
+    // 展示提示信息
+    function showMsg(text, ok) {
+      const el = document.getElementById('msg');
+      el.textContent = text;
+      el.className = ok ? 'ok' : 'err';
+      if (text) setTimeout(() => { el.textContent = ''; }, 4000);
+    }
+    // 后端所有接口统一返回 {code, msg, data}：
+    //   成功 → 取里面的 data（真正的部门数据在那儿）
+    //   失败 → 抛异常，异常信息用后端给的 msg
+    async function request(url, options) {
+      const res = await fetch(url, options);
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.msg || body.detail || ('HTTP ' + res.status));
+      return body.data;
+    }
+    // 1. 加载部门列表（GET /department）
+    async function loadDepartments() {
+      const tbody = document.getElementById('tbody');
+      tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">加载中…</td></tr>';
+      try {
+        const list = await request(API + '/department');
+        if (!list || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="color:var(--muted)">暂无部门，请先新增</td></tr>';
+          return;
+        }
+        tbody.innerHTML = list.map(d => `
+          <tr>
+            <td><span class="badge">${d.id}</span></td>
+            <td>${d.name}</td>
+            <td>${d.description || '—'}</td>
+            <td>
+              <button class="btn-ghost" onclick="showDetail(${d.id})">详情</button>
+              <button class="btn-danger" onclick="deleteDepartment(${d.id})">删除</button>
+            </td>
+          </tr>`).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="4" style="color:var(--danger)">请求失败：' + e.message + '</td></tr>';
+      }
+    }
+    // 2. 新增部门（POST /department，用的是 JSON 请求体，不是 query 参数）
+    async function createDepartment() {
+      const name = document.getElementById('inputName').value.trim();
+      const desc = document.getElementById('inputLoc').value.trim();
+      if (!name) { showMsg('部门名称不能为空', false); return; }
+      if (!desc) { showMsg('部门简介不能为空', false); return; }
+      try {
+        const d = await request(API + '/department', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ name: name, description: desc }),
+        });
+        showMsg('✅ 新增成功：' + d.name + '（ID=' + d.id + '）', true);
+        document.getElementById('inputName').value = '';
+        document.getElementById('inputLoc').value = '';
+        loadDepartments();
+      } catch (e) { showMsg('新增失败：' + e.message, false); }
+    }
+    // 3. 查看单个部门详情（GET /department/{id}）
+    async function showDetail(id) {
+      const detail = document.getElementById('detail');
+      try {
+        const d = await request(API + '/department/' + id);
+        detail.innerHTML = 'ID：<b>' + d.id + '</b>　|　名称：<b>' + d.name +
+          '</b>　|　简介：<b>' + (d.description || '—') + '</b>';
+      } catch (e) { detail.innerHTML = '<span class="err">' + e.message + '</span>'; }
+    }
+    // 4. 删除部门（DELETE /department/{id}）
+    //    部门下面还有员工时后端会返回 400「该部门下还有员工」，会显示在这里
+    async function deleteDepartment(id) {
+      if (!confirm('确定删除 ID=' + id + ' 的部门吗？')) return;
+      try {
+        await request(API + '/department/' + id, { method: 'DELETE' });
+        showMsg('✅ 已删除 ID=' + id, true);
+        document.getElementById('detail').innerHTML = '<span class="empty">尚未查看任何部门</span>';
+        loadDepartments();
+      } catch (e) { showMsg('删除失败：' + e.message, false); }
+    }
+    // ===== 员工部分（接口 /employee，真实表 t_employee）=====
+
+    // 员工区独立的提示条
+    function empMsg(text, ok) {
+      const el = document.getElementById('empMsg');
+      el.textContent = text;
+      el.className = ok ? 'ok' : 'err';
+      if (text) setTimeout(() => { el.textContent = ''; }, 4000);
+    }
+
+    // 1. 加载员工列表（GET /employee）
+    async function loadEmployees() {
+      const tbody = document.getElementById('empTbody');
+      tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">加载中…</td></tr>';
+      try {
+        const list = await request(API + '/employee');
+        if (!list || list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="7" style="color:var(--muted)">暂无员工</td></tr>';
+          return;
+        }
+        tbody.innerHTML = list.map(e => `
+          <tr>
+            <td><span class="badge">${e.id}</span></td>
+            <td>${e.name}</td>
+            <td>${e.salary}</td>
+            <td>${e.gender}</td>
+            <td>${e.telephone}</td>
+            <td>${e.dept_id ?? '—'}</td>
+            <td><button class="btn-danger" onclick="deleteEmployee(${e.id})">删除</button></td>
+          </tr>`).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="color:var(--danger)">请求失败：' + e.message + '</td></tr>';
+      }
+    }
+
+    // 2. 新增员工（POST /employee，JSON 请求体）
+    async function createEmployee() {
+      const v = id => document.getElementById(id).value.trim();
+      const body = {
+        name: v('eName'),
+        salary: v('eSalary'),
+        birth_date: v('eBirth'),
+        gender: document.getElementById('eGender').value,
+        telephone: v('ePhone'),
+        email: v('eEmail'),
+        address: v('eAddr'),
+        work_location: v('eWork'),
+        hire_date: v('eHire'),
+      };
+      // 选填的：填了才放进请求体
+      if (v('eBonus')) body.bonus_pct = v('eBonus');
+      if (v('eJob')) body.job_id = Number(v('eJob'));
+      if (v('eMgr')) body.manager_id = Number(v('eMgr'));
+      if (v('eDept')) body.dept_id = Number(v('eDept'));
+
+      // 先在前端挡一道，别让请求白跑
+      const required = {
+        姓名: body.name, 薪资: body.salary, 出生日期: body.birth_date,
+        手机号: body.telephone, 邮箱: body.email, 地址: body.address,
+        工作地点: body.work_location, 入职日期: body.hire_date,
+      };
+      const missing = Object.keys(required).filter(k => !required[k]);
+      if (missing.length) { empMsg('请填写：' + missing.join('、'), false); return; }
+
+      try {
+        const e = await request(API + '/employee', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        empMsg('✅ 新增成功：' + e.name + '（ID=' + e.id + '）', true);
+        ['eName', 'eSalary', 'ePhone', 'eEmail', 'eAddr', 'eWork', 'eBonus', 'eJob', 'eMgr', 'eDept']
+          .forEach(id => { document.getElementById(id).value = ''; });
+        loadEmployees();
+      } catch (err) {
+        // 后端校验（姓名/手机/邮箱格式、薪资范围）都会在这里显示出来
+        empMsg('新增失败：' + err.message, false);
+      }
+    }
+
+    // 3. 删除员工（DELETE /employee/{id}）
+    async function deleteEmployee(id) {
+      if (!confirm('确定删除员工 ID=' + id + ' 吗？')) return;
+      try {
+        await request(API + '/employee/' + id, { method: 'DELETE' });
+        empMsg('✅ 已删除员工 ID=' + id, true);
+        loadEmployees();
+      } catch (e) {
+        // 别人以 TA 为领导时（领导编号外键），后端返回 400，提示会显示在这
+        empMsg('删除失败：' + e.message, false);
+      }
+    }
+
+    // 页面加载时自动拉取两个列表
+    loadDepartments();
+    loadEmployees();
+  </script>
+</body>
+</html>
+
+
+

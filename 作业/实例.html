@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>JS & Vue 基础演示</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; padding: 20px; line-height: 1.8; }
+        h2 { color: #333; border-bottom: 2px solid #42b983; padding-bottom: 5px; }
+        .demo-box { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 8px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background: #42b983; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        button { padding: 6px 12px; margin: 2px; cursor: pointer; border: none; border-radius: 4px; background: #42b983; color: white; }
+        button:hover { background: #369870; }
+        .event-box { padding: 20px; background: #e8f5e9; border: 1px dashed #42b983; margin: 10px 0; }
+        code { background: #e0e0e0; padding: 2px 6px; border-radius: 3px; font-family: monospace; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+
+    <!-- ==================== 1. JS 定义变量 ==================== -->
+    <h2>1、JS 如何定义变量</h2>
+    <div class="demo-box">
+        <p><code>var</code>（函数作用域，可重复声明）: <strong>{{ varDemo }}</strong></p>
+        <p><code>let</code>（块作用域，可重新赋值）: <strong>{{ letDemo }}</strong></p>
+        <p><code>const</code>（块作用域，不可重新赋值）: <strong>{{ constDemo }}</strong></p>
+        <p><button @click="changeLet">修改 let 的值</button></p>
+    </div>
+
+    <!-- ==================== 2. 函数编写 ==================== -->
+    <h2>2、普通函数 vs 箭头函数</h2>
+    <div class="demo-box">
+        <p>普通函数结果: <strong>{{ normalResult }}</strong></p>
+        <p>箭头函数结果: <strong>{{ arrowResult }}</strong></p>
+        <p><button @click="runFunctions">执行两种函数</button></p>
+    </div>
+
+    <!-- ==================== 3. 常用事件 ==================== -->
+    <h2>3、JS 常用事件</h2>
+    <div class="event-box">
+        <p>点击次数: <strong>{{ clickCount }}</strong></p>
+        <p>
+            <button @click="handleClick">单击 (click)</button>
+            <button @dblclick="handleDblClick">双击 (dblclick)</button>
+        </p>
+        <p>
+            <input type="text" placeholder="输入时触发 (input)" @input="handleInput" style="padding:5px; width:200px;">
+            <span> 输入内容: {{ inputText }}</span>
+        </p>
+        <p>
+            <input type="text" placeholder="失去焦点触发 (blur)" @blur="handleBlur" style="padding:5px; width:200px;">
+            <span> 提示: {{ blurMsg }}</span>
+        </p>
+        <p @mouseover="handleMouseOver" @mouseout="handleMouseOut" style="padding:10px; background:#fff; display:inline-block;">
+            🖱️ 鼠标移入/移出我看看
+            <span style="color:#42b983;">{{ mouseMsg }}</span>
+        </p>
+    </div>
+
+    <!-- ==================== 4. 页面如何使用 Vue ==================== -->
+    <h2>4、页面如何使用 Vue</h2>
+    <div class="demo-box">
+        <p>步骤：</p>
+        <ol>
+            <li>通过 <code>&lt;script src="https://unpkg.com/vue@3/dist/vue.global.js"&gt;</code> 引入 Vue</li>
+            <li>创建 <code>&lt;div id="app"&gt;</code> 作为挂载点</li>
+            <li>用 <code>createApp({ setup() {...} })</code> 创建应用</li>
+            <li>用 <code>app.mount("#app")</code> 挂载到页面</li>
+        </ol>
+        <p>当前 Vue 版本检测: <strong>Vue 3 已加载 ✅</strong></p>
+    </div>
+
+    <!-- ==================== 5. JSON 数据 & 6. v-for 遍历 ==================== -->
+    <h2>5 & 6、JSON 员工数据 + v-for 遍历表格</h2>
+    <div class="demo-box">
+        <p>员工总数: <strong>{{ employees.length }}</strong> 人</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>序号</th>
+                    <th>ID</th>
+                    <th>姓名</th>
+                    <th>年龄</th>
+                    <th>部门</th>
+                    <th>薪资</th>
+                    <th>入职日期</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- v-for 遍历员工列表 -->
+                <tr v-for="(emp, index) in employees" :key="emp.id">
+                    <td>{{ index + 1 }}</td>
+                    <td>{{ emp.id }}</td>
+                    <td>{{ emp.name }}</td>
+                    <td>{{ emp.age }}</td>
+                    <td>{{ emp.department }}</td>
+                    <td>¥{{ emp.salary.toLocaleString() }}</td>
+                    <td>{{ emp.hireDate }}</td>
+                    <td>
+                        <button @click="deleteEmployee(index)">删除</button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <p style="margin-top:10px;">
+            <button @click="addEmployee">➕ 添加新员工</button>
+        </p>
+    </div>
+
+</div>
+
+<script>
+    const { createApp, ref, reactive } = Vue
+
+    createApp({
+        setup() {
+            // ========== 1. 定义变量 ==========
+            var varDemo = "我是 var 定义的"       // 函数作用域
+            let letDemo = ref("我是 let 定义的")   // 响应式，可修改
+            const constDemo = "我是 const 定义的"  // 不可重新赋值
+
+            const changeLet = () => {
+                letDemo.value = "let 的值已被修改！"
+            }
+
+            // ========== 2. 函数编写 ==========
+            const normalResult = ref("")
+            const arrowResult = ref("")
+
+            const runFunctions = () => {
+                // 普通函数
+                function add(a, b) {
+                    return a + b
+                }
+                
+                // 箭头函数
+                const multiply = (a, b) => a * b
+
+                normalResult.value = "3 + 5 = " + add(3, 5)
+                arrowResult.value = "4 × 6 = " + multiply(4, 6)
+            }
+
+            // ========== 3. 常用事件 ==========
+            const clickCount = ref(0)
+            const inputText = ref("")
+            const blurMsg = ref("")
+            const mouseMsg = ref("")
+
+            const handleClick = () => { clickCount.value++ }
+            const handleDblClick = () => { alert("你双击了按钮！") }
+            const handleInput = (e) => { inputText.value = e.target.value }
+            const handleBlur = (e) => { blurMsg.value = "你输入了: " + e.target.value }
+            const handleMouseOver = () => { mouseMsg.value = "鼠标移入了！" }
+            const handleMouseOut = () => { mouseMsg.value = "鼠标移出了！" }
+
+            // ========== 5. JSON 格式员工数据 ==========
+            const employees = ref([
+                {
+                    "id": 1001,
+                    "name": "张三",
+                    "age": 28,
+                    "department": "技术部",
+                    "salary": 15000,
+                    "hireDate": "2021-03-15"
+                },
+                {
+                    "id": 1002,
+                    "name": "李四",
+                    "age": 32,
+                    "department": "市场部",
+                    "salary": 12000,
+                    "hireDate": "2020-07-20"
+                },
+                {
+                    "id": 1003,
+                    "name": "王五",
+                    "age": 25,
+                    "department": "技术部",
+                    "salary": 13000,
+                    "hireDate": "2022-01-10"
+                },
+                {
+                    "id": 1004,
+                    "name": "赵六",
+                    "age": 35,
+                    "department": "财务部",
+                    "salary": 16000,
+                    "hireDate": "2019-11-05"
+                }
+            ])
+
+            // 添加员工
+            const addEmployee = () => {
+                const newId = 1000 + employees.value.length + 1
+                employees.value.push({
+                    "id": newId,
+                    "name": "新员工" + newId,
+                    "age": 26,
+                    "department": "人事部",
+                    "salary": 10000,
+                    "hireDate": "2024-09-01"
+                })
+            }
+
+            // 删除员工
+            const deleteEmployee = (index) => {
+                employees.value.splice(index, 1)
+            }
+
+            return {
+                // 1. 变量
+                varDemo, letDemo, constDemo, changeLet,
+                // 2. 函数
+                normalResult, arrowResult, runFunctions,
+                // 3. 事件
+                clickCount, inputText, blurMsg, mouseMsg,
+                handleClick, handleDblClick, handleInput, handleBlur, handleMouseOver, handleMouseOut,
+                // 5&6. 员工数据
+                employees, addEmployee, deleteEmployee
+            }
+        }
+    }).mount("#app")
+</script>
+
+</body>
+</html>

@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Element Plus 员工管理</title>
+    <!-- 引入 Element Plus 样式 -->
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <!-- 引入 Axios -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <!-- 引入 Element Plus -->
+    <script src="https://unpkg.com/element-plus"></script>
+    
+    <style>
+        body { font-family: 'Helvetica Neue', Helvetica, 'PingFang SC', 'Microsoft YaHei', sans-serif; padding: 20px; background: #f0f2f5; }
+        .container { max-width: 900px; margin: 0 auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 12px rgba(0,0,0,0.1); }
+        .page-title { text-align: center; color: #303133; margin-bottom: 25px; }
+        .search-box { margin-bottom: 20px; display: flex; gap: 10px; }
+        .el-input { width: 180px; }
+        .total-text { margin-top: 15px; color: #606266; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <div class="container">
+        <h2 class="page-title">📝 员工信息管理（Element Plus 版）</h2>
+
+        <!-- 添加表单区域 -->
+        <el-form :inline="true" :model="form" class="search-box">
+            <el-form-item label="姓名">
+                <el-input v-model="form.uname" placeholder="请输入姓名" clearable></el-input>
+            </el-form-item>
+            <el-form-item label="年龄">
+                <el-input v-model="form.age" type="number" placeholder="请输入年龄" clearable></el-input>
+            </el-form-item>
+            <el-form-item>
+                <el-button type="primary" @click="addUser">➕ 添加员工</el-button>
+                <el-button @click="clearForm">清空</el-button>
+            </el-form-item>
+        </el-form>
+
+        <!-- Element Plus 表格 -->
+        <el-table :data="tableData" border stripe style="width: 100%" empty-text="暂无数据">
+            <el-table-column type="index" label="序号" width="80" align="center"></el-table-column>
+            <el-table-column prop="uname" label="姓名" align="center"></el-table-column>
+            <el-table-column prop="age" label="年龄" width="120" align="center"></el-table-column>
+            <el-table-column label="操作" width="200" align="center">
+                <!-- 作用域插槽，获取当前行数据 -->
+                <template #default="scope">
+                    <el-button size="small" type="success" @click="editAge(scope.$index)">年龄+1</el-button>
+                    <el-button size="small" type="danger" @click="deleteUser(scope.$index, scope.row)">删除</el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <p class="total-text">总人数：{{ tableData.length }} 人</p>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue
+
+    const app = createApp({
+        setup() {
+            // 员工列表
+            const tableData = ref([])
+
+            // 表单数据
+            const form = ref({
+                uname: '',
+                age: ''
+            })
+
+            // 初始化数据
+            const initData = () => {
+               axios.get("./员工.json").then((res) => {
+                    tableData.value = res.data
+                })
+            }
+
+            // 添加员工
+            const addUser = () => {
+                if (!form.value.uname || !form.value.age) {
+                    ElementPlus.ElMessage.warning('请填写完整信息')
+                    return
+                }
+                const newId = tableData.value.length > 0
+                    ? Math.max(...tableData.value.map(item => item.id)) + 1
+                    : 1
+                tableData.value.push({
+                    id: newId,
+                    uname: form.value.uname,
+                    age: Number(form.value.age)
+                })
+                ElementPlus.ElMessage.success('添加成功！')
+                clearForm()
+            }
+
+            // 删除员工
+            const deleteUser = (index, row) => {
+                ElementPlus.ElMessageBox.confirm(
+                    `确定删除员工 "${row.uname}" 吗？`,
+                    '提示',
+                    {
+                        confirmButtonText: '确定',
+                        cancelButtonText: '取消',
+                        type: 'warning'
+                    }
+                ).then(() => {
+                    tableData.value.splice(index, 1)
+                    ElementPlus.ElMessage.success('删除成功！')
+                }).catch(() => {
+                    ElementPlus.ElMessage.info('已取消删除')
+                })
+            }
+
+            // 修改：年龄+1
+            const editAge = (index) => {
+                tableData.value[index].age++
+                ElementPlus.ElMessage.success('年龄已更新！')
+            }
+
+            // 清空表单
+            const clearForm = () => {
+                form.value = { uname: '', age: '' }
+            }
+
+            // 页面加载完初始化
+            onMounted(() => {
+                initData()
+            })
+
+            return {
+                tableData,
+                form,
+                addUser,
+                deleteUser,
+                editAge,
+                clearForm
+            }
+        }
+    })
+
+    // ✅ 关键：注册 Element Plus
+    app.use(ElementPlus)
+    app.mount("#app")
+</script>
+
+</body>
+</html>

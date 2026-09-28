@@ -1,0 +1,495 @@
+<!-- ======================================================================
+    客户管理 - 前端页面（Vue3 + Element Plus + Axios）
+    
+    功能：查询列表、添加用户、修改用户、删除用户
+    后端：FastAPI (http://127.0.0.1:8001)
+    数据库：MySQL → a_my_store.t_user
+    
+    页面加载流程：
+        打开页面 → onMounted() → axios.get("/user") → 后端返回 JSON
+        → 解析 data 字段 → 赋值给 tableData → 表格自动渲染
+    ====================================================================== -->
+<!DOCTYPE html>
+<!-- lang = language（语言），en = English（英语），这里改成 "zh-CN" 更准确 -->
+<html lang="en">
+<head>
+    <!-- meta charset = 元数据字符集，UTF-8 = 万国码，保证中文不乱码 -->
+    <meta charset="UTF-8">
+    <!-- title = 标题，显示在浏览器标签页上 -->
+    <title>客户管理</title>
+
+    <!-- ========== CDN 引入：不需要 npm install，浏览器直接加载 ========== -->
+    <!-- CDN = Content Delivery Network（内容分发网络） -->
+
+    <!-- Element Plus 的 CSS 样式文件（表格、按钮、弹窗等 UI 外观） -->
+    <link rel="stylesheet" href="//unpkg.com/element-plus/dist/index.css"/>
+
+    <!-- Vue.js 第 3 版：前端响应式框架 -->
+    <script src="//unpkg.com/vue@3"></script>
+
+    <!-- Element Plus：Vue 3 的 UI 组件库，提供 el-table、el-dialog 等组件 -->
+    <script src="//unpkg.com/element-plus"></script>
+
+    <!-- Axios：发送 HTTP 请求的库（GET/POST/PATCH/DELETE） -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <!--
+        id="app" = Vue 的挂载点（mount point）
+        Vue 通过 app.mount("#app") 接管这个 div 及其内部所有内容
+        此 div 外部的 HTML 不会被 Vue 处理
+    -->
+    <div id="app">
+
+        <!-- ================================================================
+            添加用户按钮
+            type="success" = 绿色按钮
+            @click="handleAdd" = v-on:click 的简写，点击时调用 handleAdd 方法
+            style="margin-bottom: 12px" = 底部留 12 像素间距，和表格隔开
+        ================================================================ -->
+        <el-button type="success" @click="handleAdd" style="margin-bottom: 12px">添加用户</el-button>
+        <el-input v-model="keyword" placeholder="输入编号或姓名查询" clearable style="width: 220px; margin-bottom: 12px; margin-left: 12px"></el-input>
+        <el-button type="primary" @click="handleSearch" style="margin-bottom: 12px">查询</el-button>
+        <el-button @click="initdata" style="margin-bottom: 12px">显示全部</el-button>
+        <!-- ================================================================
+            数据表格
+            :data="tableData" = v-bind:data 的简写，动态绑定 JS 变量 tableData
+            style="width: 100%" = 表格占满容器宽度
+        ================================================================ -->
+        <el-table :data="tableData" style="width: 100%">
+
+            <!--
+                el-table-column = 列定义
+                prop="id"     = property（属性），取 row.id 显示
+                label="编号"   = 列头文字
+                align="center" = alignment（对齐方式），居中
+                width="80"     = 列宽 80 像素（px = pixel）
+            -->
+            <el-table-column prop="id" label="编号" align="center" width="80"></el-table-column>
+            <el-table-column prop="name" label="姓名" align="center"></el-table-column>
+            <el-table-column prop="age" label="年龄" align="center" width="80"></el-table-column>
+            <el-table-column prop="sex" label="性别" align="center" width="80"></el-table-column>
+            <el-table-column prop="telephone" label="电话"></el-table-column>
+            <el-table-column prop="email" label="邮箱"></el-table-column>
+
+            <!-- ========== 操作列（每一行都有修改/删除按钮） ========== -->
+            <el-table-column label="Operations">
+                <!--
+                    <template> = Vue 模板标记，不渲染成 DOM 元素
+                    #default   = v-slot:default 的简写，默认插槽
+                    "scope"    = 作用域插槽变量，包含：
+                        scope.$index = 当前行索引（第几行，从 0 开始）
+                        scope.row    = 当前行数据对象 {id, name, age, sex, telephone, email}
+                -->
+                <template #default="scope">
+                    <!--
+                        size="small" = 小尺寸按钮
+                        @click="handleEdit(scope.$index, scope.row)"
+                            点击时传入行索引和行数据
+                    -->
+                    <el-button size="small" @click="handleEdit(scope.$index, scope.row)">
+                        修改
+                    </el-button>
+                    <!--
+                        type="danger" = 红色危险按钮，用于删除操作
+                    -->
+                    <el-button
+                            size="small"
+                            type="danger"
+                            @click="handleDelete(scope.$index, scope.row)">
+                        删除
+                    </el-button>
+                </template>
+            </el-table-column>
+        </el-table>
+        <!-- ================================================================
+            添加/修改弹窗（共用）
+            
+            v-model="dialogVisible" = 双向绑定
+                dialogVisible=true  → 弹窗打开
+                dialogVisible=false → 弹窗关闭
+                用户点右上角 X 也会自动把 dialogVisible 改成 false
+            
+            :title="isAdd ? '添加用户' : '修改用户'"
+                = 动态标题，isAdd=true 显示"添加用户"，否则显示"修改用户"
+                ? : 是三元表达式：条件 ? 真值 : 假值
+            
+            width="420px" = 弹窗宽度 420 像素
+            
+            @closed="resetForm"
+                = 弹窗完全关闭动画结束后触发，调用 resetForm 重置表单
+                （注意是 closed 不是 close，closed 在动画结束后才触发）
+        ================================================================ -->
+        <el-dialog v-model="dialogVisible" :title="isAdd ? '添加用户' : '修改用户'" width="420px" @closed="resetForm">
+
+            <!--
+                el-form = 表单容器
+                :model="editForm" = 绑定表单数据对象（reactive 响应式对象）
+                label-width="80px" = 标签宽度 80 像素
+            -->
+            <el-form :model="editForm" label-width="80px">
+
+                <!--
+                    el-form-item = 表单项（一行一个字段）
+                    label="姓名" = 字段标签
+                    el-input = 文本输入框
+                    v-model="editForm.name" = 双向绑定到 editForm.name
+                        输入框的值变化 → editForm.name 自动更新
+                        editForm.name 被代码修改 → 输入框自动刷新
+                    placeholder = 占位提示文字，输入框为空时灰色显示
+                -->
+                <el-form-item label="姓名">
+                    <el-input v-model="editForm.name" placeholder="请输入姓名"></el-input>
+                </el-form-item>
+
+                <!--
+                    el-input-number = 数字输入框（带 + - 按钮）
+                    :min="0" = minimum（最小值）0
+                    :max="150" = maximum（最大值）150
+                -->
+                <el-form-item label="年龄">
+                    <el-input-number v-model="editForm.age" :min="0" :max="150" style="width: 100%"></el-input-number>
+                </el-form-item>
+
+                <!--
+                    el-radio-group = 单选按钮组（group = 组）
+                    同一组内只能选中一个
+                    v-model="editForm.sex" = 绑定到性别字段
+                -->
+                <el-form-item label="性别">
+                    <el-radio-group v-model="editForm.sex">
+                        <!--
+                            el-radio = 单个单选按钮
+                            value="男" = 选中时 editForm.sex 的值变成 "男"
+                            标签内的"男"是显示文字
+                        -->
+                        <el-radio value="男">男</el-radio>
+                        <el-radio value="女">女</el-radio>
+                    </el-radio-group>
+                </el-form-item>
+
+                <el-form-item label="电话">
+                    <el-input v-model="editForm.telephone" placeholder="请输入电话"></el-input>
+                </el-form-item>
+
+                <el-form-item label="邮箱">
+                    <el-input v-model="editForm.email" placeholder="请输入邮箱"></el-input>
+                </el-form-item>
+            </el-form>
+
+            <!--
+                #footer = 弹窗底部的插槽（slot = 插槽）
+                footer = 页脚
+            -->
+            <template #footer>
+                <!-- 取消按钮：点击直接把 dialogVisible 改成 false，弹窗关闭 -->
+                <el-button @click="dialogVisible = false">取消</el-button>
+                <!--
+                    type="primary" = 主要按钮（蓝色高亮）
+                    @click="handleSubmit" = 点击时调提交方法
+                    根据 isAdd 模式，内部会判断调 POST（新增）还是 PATCH（修改）
+                -->
+                <el-button type="primary" @click="handleSubmit">确定</el-button>
+            </template>
+        </el-dialog>
+    </div>
+
+    <!-- ==================================================================
+        脚本区域：所有业务逻辑写在这里
+    ================================================================== -->
+    <script>
+        // ===== 从 Vue 全局对象中解构出需要的函数 =====
+        // const = constant（常量），声明后不可重新赋值
+        const { createApp, ref, reactive, onMounted } = Vue
+        // createApp   = 创建 Vue 应用实例
+        // ref         = reference（引用），创建响应式引用变量（访问需要 .value）
+        // reactive    = 创建响应式对象（访问不需要 .value，直接 .属性名）
+        // onMounted   = 生命周期钩子，DOM 挂载完成后执行（类似于 $(document).ready）
+
+        // ===== 从 ElementPlus 中取出消息提示和确认弹窗 =====
+        const { ElMessage, ElMessageBox } = ElementPlus;
+        // ElMessage    = 顶部消息提示（成功/失败/警告）
+        // ElMessageBox = 模态确认对话框（带确定/取消按钮）
+
+        // ===== 创建 Vue 应用实例 =====
+        const app = createApp({
+            // setup() = Vue 3 组合式 API（Composition API）的入口函数
+            // 所有响应式数据、计算属性、方法都在这里定义
+            setup() {
+
+                // ----------------------------------------------------------
+                // 一、定义响应式数据（数据变了，页面自动更新）
+                // ----------------------------------------------------------
+
+                // ref([]) = 创建一个响应式引用，初始值为空数组
+                // 存后端返回的用户列表，每项格式: {id, name, age, sex, telephone, email}
+                const tableData = ref([])
+
+                // 控制弹窗的显示/隐藏，false=隐藏，true=显示
+                const dialogVisible = ref(false)
+
+                // 当前模式：true=添加模式，false=修改模式
+                // 弹窗标题和提交逻辑都依赖这个变量来区分行为
+                const isAdd = ref(true)
+
+                // 当前正在编辑的用户 ID（修改模式时用到，添加模式为 null）
+                const currentId = ref(null)
+
+                // 搜索关键词
+                const keyword = ref('')
+
+                // reactive({...}) = 创建响应式对象
+                // 和 ref 的区别：ref 需要 .value，reactive 直接 .属性名
+                // 这个对象绑定到 el-form 的 :model，所有输入框通过 v-model 和它双向绑定
+                const editForm = reactive({
+                    name: '',       // 姓名
+                    age: 18,        // 年龄（默认 18）
+                    sex: '男',      // 性别（默认男）
+                    telephone: '',  // 电话
+                    email: ''       // 邮箱
+                })
+
+
+                // ----------------------------------------------------------
+                // 二、定义方法
+                // ----------------------------------------------------------
+
+                /**
+                 * 初始化数据：从后端查询所有用户
+                 *
+                 * axios.get(url) = 发送 GET 请求
+                 * .then(res => {...}) = 请求成功后的回调
+                 *   res = response（响应对象）
+                 *   res.data = 响应体 JSON
+                 *   后端返回格式：{code: 200, msg: "操作成功", data: [...]}
+                 *   res.data.data = 真正的用户列表数组
+                 *   || [] = 如果 data 是 null/undefined，用空数组兜底
+                 */
+                const initdata = () => {
+                    axios.get("http://127.0.0.1:8001/user").then((res) => {
+                        tableData.value = res.data.data || []
+                    })
+                }
+
+                /**
+                 * 重置表单：把弹窗所有字段恢复默认值
+                 * 弹窗关闭时（@closed）自动调用，防止下次打开残留上次数据
+                 */
+                const resetForm = () => {
+                    currentId.value = null          // 清空编辑中的用户 ID
+                    editForm.name = ''              // 清空姓名
+                    editForm.age = 18               // 年龄恢复默认 18
+                    editForm.sex = '男'             // 性别恢复默认"男"
+                    editForm.telephone = ''         // 清空电话
+                    editForm.email = ''             // 清空邮箱
+                }
+
+                /**
+                 * 处理添加：切换到添加模式，清空表单，打开弹窗
+                 *
+                 * 此时不传参数（不像 edit 需要传行数据），
+                 * 弹窗打开后显示空白表单让用户填写。
+                 */
+                const handleAdd = () => {
+                    isAdd.value = true              // 标记为添加模式
+                    resetForm()                     // 重置所有字段
+                    dialogVisible.value = true      // 打开弹窗
+                }
+
+                /**
+                 * 处理修改：切换到修改模式，填充当前行数据，打开弹窗
+                 *
+                 * @param {number} index - 当前行的索引（0-based，第几行）
+                 * @param {object} row   - 当前行的完整数据 {id, name, age, sex, ...}
+                 */
+                const handleEdit = (index, row) => {
+                    isAdd.value = false             // 标记为修改模式
+                    currentId.value = row.id        // 记录被编辑用户的 ID
+                    // 把行数据逐一填入表单
+                    editForm.name = row.name
+                    editForm.age = row.age
+                    editForm.sex = row.sex
+                    editForm.telephone = row.telephone
+                    editForm.email = row.email
+                    dialogVisible.value = true      // 打开弹窗
+                }
+
+                /**
+                 * 提交表单：根据 isAdd 模式自动判断调新增还是修改接口
+                 *
+                 * - 添加模式：POST /user         → 全部字段必传
+                 * - 修改模式：PATCH /user/{id}   → 只传有值的字段（局部更新）
+                 */
+                const handleSubmit = () => {
+                    // ========== 新增逻辑 ==========
+                    if (isAdd.value) {
+                        // 构造请求体（request body）
+                        const postData = {
+                            name: editForm.name,
+                            age: editForm.age,
+                            sex: editForm.sex,
+                            telephone: editForm.telephone,
+                            email: editForm.email
+                        }
+                        // axios.post(url, data) = 发送 POST 请求
+                        axios.post("http://127.0.0.1:8001/user", postData).then((res) => {
+                            // 后端新增成功返回 code=201（Created，已创建）
+                            if (res.data.code === 200 || res.data.code === 201) {
+                                ElMessage.success('添加成功')   // 弹出绿色成功提示
+                                dialogVisible.value = false    // 关闭弹窗
+                                initdata()                     // 刷新表格数据
+                            } else {
+                                ElMessage.error(res.data.msg || '添加失败')  // 弹出红色错误提示
+                            }
+                        }).catch((err) => {
+                            // catch = 捕获异常（网络错误、服务器 500 等）
+                            // err.response = 服务器返回的错误响应
+                            // ?. = 可选链操作符，err.response 为 null 时不会报错
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+
+                    // ========== 修改逻辑 ==========
+                    } else {
+                        // 构造局部更新数据（patch = 补丁，只改传过去的字段）
+                        const patchData = {}
+                        // 只把有值的字段放进请求体，空字段不传
+                        if (editForm.name) patchData.name = editForm.name
+                        if (editForm.age !== null && editForm.age !== undefined) patchData.age = editForm.age
+                        if (editForm.sex) patchData.sex = editForm.sex
+                        if (editForm.telephone) patchData.telephone = editForm.telephone
+                        if (editForm.email) patchData.email = editForm.email
+
+                        // 模板字符串：`...${变量}...`  等价于 ".../user/" + currentId.value
+                        // axios.patch(url, data) = 发送 PATCH 请求（局部更新）
+                        axios.patch(`http://127.0.0.1:8001/user/${currentId.value}`, patchData).then((res) => {
+                            if (res.data.code === 200) {
+                                ElMessage.success('修改成功')
+                                dialogVisible.value = false
+                                initdata()
+                            } else {
+                                ElMessage.error(res.data.msg || '修改失败')
+                            }
+                        }).catch((err) => {
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+                    }
+                }
+
+                /**
+                 * 处理删除：弹出确认对话框，确认后调 DELETE 接口
+                 *
+                 * ElMessageBox.confirm(...) = 弹出确认对话框，返回 Promise
+                 *   .then() = 用户点了"确定"时执行
+                 *   .catch() = 用户点了"取消"时执行（什么都不做）
+                 *
+                 * type: 'warning' = 黄色警告图标
+                 * confirmButtonText = confirm button text（确认按钮文字）
+                 * cancelButtonText  = cancel button text（取消按钮文字）
+                 */
+                const handleDelete = (index, row) => {
+                    ElMessageBox.confirm(
+                        // 反引号 `` 是模板字符串，${} 嵌入变量
+                        `确定要删除「${row.name}」吗？此操作不可恢复。`,
+                        '确认删除',
+                        {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }
+                    ).then(() => {
+                        // 用户点了确定 → 发送 DELETE 请求
+                        // axios.delete(url) = 发送 DELETE 请求
+                        axios.delete(`http://127.0.0.1:8001/user/${row.id}`).then((res) => {
+                            if (res.data.code === 200) {
+                                ElMessage.success('删除成功')
+                                initdata()                 // 刷新列表
+                            } else {
+                                ElMessage.error(res.data.msg || '删除失败')
+                            }
+                        }).catch((err) => {
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+                    }).catch(() => {
+                        // 用户点了取消或关闭了弹窗 → 什么也不做
+                    })
+                }
+                /**
+                 * 搜索：输入内容如果是数字→按编号查，否则→按姓名模糊查
+                 */
+                const handleSearch = () => {
+                    const kw = keyword.value.trim()
+                    if (!kw) {
+                        // 没输入就显示全部
+                        initdata()
+                        return
+                    }
+                    // 判断是纯数字还是文字
+                    if (/^\d+$/.test(kw)) {
+                        // 纯数字 → 按编号查
+                        axios.get("http://127.0.0.1:8001/user/" + kw).then((res) => {
+                            if (res.data.code === 200) {
+                                tableData.value = res.data.data ? [res.data.data] : []
+                            } else {
+                                ElMessage.error(res.data.msg || '未找到')
+                            }
+                        }).catch(() => {
+                            ElMessage.error('未找到该用户')
+                        })
+                    } else {
+                        // 文字 → 按姓名模糊查
+                        axios.get("http://127.0.0.1:8001/user/by-name/" + kw).then((res) => {
+                            if (res.data.code === 200) {
+                                tableData.value = res.data.data || []
+                            } else {
+                                ElMessage.error(res.data.msg || '未找到')
+                            }
+                        }).catch(() => {
+                            ElMessage.error('请求失败')
+                        })
+                    }
+                }
+
+                // ----------------------------------------------------------
+                // 三、生命周期钩子
+                // ----------------------------------------------------------
+
+                // onMounted = 当 Vue 把 DOM 渲染到页面上之后，自动执行这里的回调
+                // 类似于 window.onload，但和 Vue 的渲染周期对齐
+                onMounted(() => {
+                    initdata()   // 页面加载完马上查数据
+                })
+
+
+                // ----------------------------------------------------------
+                // 四、返回暴露给模板的数据和方法
+                // ----------------------------------------------------------
+
+                // setup() 必须 return 一个对象，里面列出所有模板中要用到的变量和方法
+                // 没 return 的东西在 <template> 里无法访问
+                return {
+                    tableData,           // 表格数据
+                    dialogVisible,       // 添加/修改弹窗显隐
+                    isAdd,               // 添加/修改模式标记
+                    editForm,            // 添加/修改表单数据对象
+                    keyword,             // 搜索关键词
+                    handleAdd,           // 添加按钮
+                    handleEdit,          // 修改按钮
+                    handleDelete,        // 删除按钮
+                    handleSubmit,        // 确定提交
+                    handleSearch,        // 查询
+                    initdata,            // 显示全部（刷新）
+                    resetForm            // 重置表单
+                }
+            }
+        })
+
+        // ===== 安装插件 & 挂载 =====
+        // app.use(ElementPlus) = 安装 Element Plus 插件，注册所有 el-xxx 组件
+        app.use(ElementPlus)
+
+        // app.mount("#app") = 把整个 Vue 应用挂载到 id="app" 的 DOM 元素上
+        // mount = 挂载
+        app.mount("#app")
+    </script>
+</body>
+</html>

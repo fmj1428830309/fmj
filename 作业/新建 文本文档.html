@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+</head>
+<style>
+    .form-header {
+        color: #e32323;
+        font-size: 24px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+    #hobby-row {
+        color: #3d23e3;
+       font-size: 24px;
+        text-align: center;
+        margin-bottom: 20px;
+    }
+</style>
+<body>
+                <form name="input" action="https://www.woniuxy.com/" method="get">
+                    <table class="styled-box" border="1" width="400" height="200">
+            <tr class="form-header">
+                <td>用户名</td>
+                <td><input type="text" name="username" ></td>
+            </tr>
+            <tr class="form-header">
+                <td>密码</td>
+                <td><input type="password" name="password"></td>
+            </tr>
+            <tr style="color:#235de3;font-size:24px;text-align:center;margin-bottom:20px;" >
+                <td>性别</td>
+                <td><input type="radio" name="gender" value="male"> 男
+                    <input type="radio" name="gender" value="female"> 女
+                </td>
+            </tr>
+            <tr id="hobby-row">
+                <td>爱好</td>
+                <td><input type="checkbox" name="hobby" value="reading"> 阅读
+                    <input type="checkbox" name="hobby" value="traveling"> 旅行
+                    <input type="checkbox" name="hobby" value="sports"> 运动
+                </td>
+            </tr>
+            <tr class="form-header">
+                <td>省份</td>
+                <td>
+                    <select name="city">
+                        <option value="beijing">北京</option>
+                        <option value="shanghai">上海</option>
+                        <option value="guangzhou">广州</option>
+                    </select>
+                </td>
+            </tr>
+            <tr class="form-header">    
+                <td colspan="2" align="center"><input type="submit" value="提交"></td>
+            </tr>
+        </table>
+    </form>
+</body>
+</html>

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue 入门</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <p><input type="button" value="点击查看信息" @click="toggleShow()"></p>
+        
+        <p>计数器: {{ count }} </p>
+        <p><button @click="count++">增加计数</button></p>
+        
+        <!-- 点击后显示名字列表 -->
+        <ul v-if="isShow">
+            <li v-for="(item, index) in names" :key="index">
+                {{ index + 1 }}. {{ item }}
+            </li>
+        </ul>
+    </div>
+
+    <script>
+        const { createApp, ref } = Vue
+
+        createApp({
+            setup() {
+                // ✅ 用 ref 定义响应式数组
+                const names = ref(["张三", "李四", "王五"])
+                const isShow = ref(false)
+
+                const toggleShow = () => {
+                    isShow.value = !isShow.value      // 切换显示/隐藏
+                    console.log("名字列表:", names.value)
+                }
+                const count = ref(1)
+                    const intervalId = () => {
+                        count.value++
+                        console.log("计数器:", count.value)
+                    }
+
+                return {
+                    names,
+                    isShow,
+                    toggleShow,
+                    count,
+                    intervalId
+                    
+                }
+            }
+        }).mount("#app")
+    </script>
+</body>
+</html>
+
+
+
+
+
+
+
+

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<body>
+    <div id="app">
+        <p>姓名: <input v-model="USER.name" /></p>
+        <p>年龄: <input v-model="USER.age" /></p>
+        <p>汽车名称: <input v-model="USER.car.name" /></p>
+        <p>汽车价格: <input v-model="USER.car.price" /></p>
+        <p>爱好: <input v-model="USER.hobbies[0]" /></p>
+        <ul>
+            <li v-for="hobby in USER.hobbies" >{{ hobby }}</li>
+        </ul>
+    </div>
+    <script>
+        const { createApp, ref } = Vue
+        const app = createApp({
+            setup() {
+              const USER ={
+                name:"张三",
+                age: 18,
+                car:{
+                    name: "宝马",
+                    price: 100000
+                },
+                hobbies: ["篮球","足球","乒乓球"]
+              } 
+                return {
+                    USER
+                    
+                }
+            }
+        })
+        app.mount("#app")
+    </script>
+</body>
+</html>

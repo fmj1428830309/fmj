@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 响应式对象</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<!-- 2. 引入 Element Plus 样式 -->
+      <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
+<!-- 3. 引入 Element Plus 组件库 -->
+    
+<script src="https://unpkg.com/element-plus"></script>
+</head>
+<body>
+    <div id="app">
+        <el-table :data="tableData" style="width: 100%">
+            <el-table-column prop="id" label="部门编号" align="center" width="80"></el-table-column>
+            <el-table-column prop="name" label="部门名称" align="center" ></el-table-column>
+            <el-table-column prop="gender" label="性别" align="center"></el-table-column>
+        </el-table>
+
+    </div>
+    <script>
+        const { createApp, ref, onMounted } = Vue
+        const app = createApp({
+            setup() {
+                const tableData = ref([])
+                const initdata = () => {
+                    axios.get("/dept").then((res) => {
+                        tableData.value = res.data
+                    })
+                }
+                onMounted (() => {
+                    initdata()
+                }
+            )
+                return {
+                    tableData
+
+                }
+            }
+        })
+        app.use(ElementPlus)
+        app.mount("#app")
+    </script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>部门管理系统 · FastAPI + SQLModel</title>
+
+  <!-- CDN 引入：Vue3 + ElementPlus + axios -->
+  <link rel="stylesheet" href="https://unpkg.com/element-plus@2.7.8/dist/index.css" />
+  <script src="https://unpkg.com/vue@3.4.38/dist/vue.global.prod.js"></script>
+  <script src="https://unpkg.com/element-plus@2.7.8/dist/index.full.js"></script>
+  <script src="https://unpkg.com/element-plus@2.7.8/dist/locale/zh-cn.js"></script>
+  <script src="https://unpkg.com/axios@1.7.7/dist/axios.min.js"></script>
+
+  <style>
+    /* v-cloak：Vue 还没接管页面时先藏起来，避免看到一堆 {{ }} 花括号 */
+    [v-cloak] { display: none; }
+    body {
+      margin: 0;
+      background: #f8fafc;
+      font-family: -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+      color: #0f172a;
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+    .container { max-width: 900px; margin: 0 auto; }
+    h1 { font-size: 26px; margin-bottom: 4px; }
+    .subtitle { color: #64748b; margin-bottom: 28px; font-size: 14px; }
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,.08);
+      margin-bottom: 20px;
+    }
+    .card h2 { font-size: 16px; margin-bottom: 16px; color: #0ea5e9; font-weight: 500; }
+    .table-head { display: flex; align-items: center; margin-bottom: 12px; }
+    .table-head h2 { margin-bottom: 0; }
+    .table-head .spacer { flex: 1; }
+    .detail-box { min-height: 24px; font-size: 14px; }
+    .empty { color: #94a3b8; }
+    .kv { margin-right: 18px; }
+    .kv b { color: #0f172a; }
+    .tip { margin-top: 14px; font-size: 12px; color: #94a3b8; }
+  </style>
+</head>
+<body>
+  <div id="app" v-cloak>
+    <div class="container">
+      <h1>部门管理系统</h1>
+      <p class="subtitle">前端页面 ⇄ 测试2.py（FastAPI + SQLModel）· 接口地址 8080</p>
+
+      <!-- 新增 / 编辑表单：同一个表单，靠 editingId 区分是新增还是改 -->
+      <div class="card">
+        <h2>{{ editingId === null ? '新增部门' : '编辑部门（ID=' + editingId + '）' }}</h2>
+        <el-form :model="form" inline @submit.prevent="submitForm">
+          <el-form-item label="名称">
+            <el-input
+              v-model="form.name"
+              placeholder="部门名称（必填）"
+              style="width: 220px"
+              @keyup.enter="submitForm"
+            ></el-input>
+          </el-form-item>
+          <el-form-item label="位置">
+            <el-input
+              v-model="form.location"
+              placeholder="位置（可选）"
+              style="width: 220px"
+              @keyup.enter="submitForm"
+            ></el-input>
+          </el-form-item>
+          <el-form-item>
+            <el-button type="primary" :loading="submitting" @click="submitForm">
+              {{ editingId === null ? '新增' : '保存修改' }}
+            </el-button>
+          </el-form-item>
+          <el-form-item v-if="editingId !== null">
+            <el-button @click="cancelEdit">取消编辑</el-button>
+          </el-form-item>
+        </el-form>
+      </div>
+
+      <!-- 列表 -->
+      <div class="card">
+        <div class="table-head">
+          <h2>部门列表</h2>
+          <span class="spacer"></span>
+          <el-button @click="loadList">刷新</el-button>
+        </div>
+        <el-table :data="departments" v-loading="loading" border stripe style="width: 100%">
+          <el-table-column prop="id" label="ID" width="90">
+            <template #default="{ row }">
+              <el-tag type="primary" effect="plain" round>{{ row.id }}</el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="name" label="部门名称" min-width="160"></el-table-column>
+          <el-table-column prop="location" label="位置" min-width="160">
+            <template #default="{ row }">{{ row.location || '—' }}</template>
+          </el-table-column>
+          <el-table-column label="操作" width="190" fixed="right">
+            <template #default="{ row }">
+              <el-button size="small" link @click="showDetail(row.id)">详情</el-button>
+              <el-button size="small" type="primary" link @click="enterEdit(row)">编辑</el-button>
+              <el-button size="small" type="danger" link @click="removeDept(row)">删除</el-button>
+            </template>
+          </el-table-column>
+          <template #empty>
+            <div class="empty">暂无部门，请先在上方新增</div>
+          </template>
+        </el-table>
+      </div>
+
+      <!-- 详情 -->
+      <div class="card">
+        <h2>部门详情</h2>
+        <div class="detail-box">
+          <template v-if="detail">
+            <span class="kv">ID：<b>{{ detail.id }}</b></span>
+            <span class="kv">名称：<b>{{ detail.name }}</b></span>
+            <span class="kv">位置：<b>{{ detail.location || '—' }}</b></span>
+          </template>
+          <span v-else class="empty">尚未查看任何部门，点上方「详情」查看</span>
+        </div>
+        <p class="tip">页面由 serve_frontend.py 提供，接口统一走 /api 前缀，由脚本转发到 8080</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const { createApp, ref, reactive, onMounted } = Vue;
+    const { ElMessage, ElMessageBox } = ElementPlus;
+
+    // 前端页面由 serve_frontend.py 提供，接口统一走 /api 前缀，由脚本转发到 8080
+    const API = '/api';
+
+    createApp({
+      setup() {
+        const departments = ref([]);
+        const loading = ref(false);
+        const submitting = ref(false);
+        const editingId = ref(null);   // null 表示新增模式
+        const detail = ref(null);
+        const form = reactive({ name: '', location: '' });
+
+        const emptyForm = () => ({ name: '', location: '' });
+
+        // 后端可能返回 FastAPI 原生格式 {detail}，也可能返回统一格式 {code,msg,data}
+        function fail(msg, e) {
+          console.error(e);
+          const d = e && e.response ? e.response.data : null;
+          const reason = (d && (d.detail || d.msg)) || (e && e.message) || '未知错误';
+          ElMessage.error(msg + '失败：' + reason);
+        }
+
+        async function loadList() {
+          loading.value = true;
+          try {
+            const res = await axios.get(API + '/departments/');
+            // 兼容两种返回：直接是数组，或者包在 {data:[...]} 里
+            departments.value = Array.isArray(res.data) ? res.data : (res.data.data || []);
+          } catch (e) {
+            fail('加载列表', e);
+            departments.value = [];
+          } finally {
+            loading.value = false;
+          }
+        }
+
+        async function submitForm() {
+          const name = (form.name || '').trim();
+          if (!name) {
+            ElMessage.warning('部门名称不能为空');
+            return;
+          }
+          const body = { name: name, location: (form.location || '').trim() || null };
+          submitting.value = true;
+          try {
+            if (editingId.value === null) {
+              const res = await axios.post(API + '/departments/', body);
+              ElMessage.success('新增成功：' + res.data.name + '（ID=' + res.data.id + '）');
+            } else {
+              const res = await axios.put(API + '/departments/' + editingId.value, body);
+              ElMessage.success('修改成功：' + res.data.name);
+            }
+            cancelEdit();
+            loadList();
+          } catch (e) {
+            fail(editingId.value === null ? '新增' : '修改', e);
+          } finally {
+            submitting.value = false;
+          }
+        }
+
+        function enterEdit(row) {
+          editingId.value = row.id;
+          form.name = row.name || '';
+          form.location = row.location || '';
+        }
+
+        function cancelEdit() {
+          editingId.value = null;
+          Object.assign(form, emptyForm());
+        }
+
+        async function showDetail(id) {
+          try {
+            const res = await axios.get(API + '/departments/' + id);
+            detail.value = res.data && res.data.data ? res.data.data : res.data;
+          } catch (e) {
+            detail.value = null;
+            fail('查看详情', e);
+          }
+        }
+
+        async function removeDept(row) {
+          try {
+            await ElMessageBox.confirm('确定删除「' + row.name + '」吗？', '提示', {
+              type: 'warning',
+              confirmButtonText: '删除',
+              cancelButtonText: '取消'
+            });
+          } catch (e) {
+            return; // 用户点了取消
+          }
+          try {
+            await axios.delete(API + '/departments/' + row.id);
+            ElMessage.success('已删除 ID=' + row.id);
+            if (detail.value && detail.value.id === row.id) detail.value = null;
+            loadList();
+          } catch (e) {
+            fail('删除', e);
+          }
+        }
+
+        onMounted(loadList);
+
+        return {
+          departments, loading, submitting, editingId, detail, form,
+          loadList, submitForm, enterEdit, cancelEdit, showDetail, removeDept
+        };
+      }
+    })
+      .use(ElementPlus, { locale: ElementPlusLocaleZhCn })
+      .mount('#app');
+  </script>
+</body>
+</html>

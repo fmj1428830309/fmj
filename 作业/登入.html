@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学习网站 — 首页导航示例</title>
+    <style>
+        :root{--nav-bg:#2b2f36;--nav-hover:rgba(255,255,255,0.06);--accent:#ff6b6b}
+        *{box-sizing:border-box}
+        body{margin:0;font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,"PingFang SC","Microsoft YaHei";background:#e8f4f8;}
+        header{box-shadow:0 2px 6px rgba(0,0,0,0.08);position:relative;z-index:10}
+        .nav{display:flex;align-items:center;justify-content:space-between;padding:12px 20px;background:var(--nav-bg);color:#fff}
+        .nav .logo{font-weight:700;font-size:18px}
+        .mobile-toggle{display:none;font-size:20px;background:none;border:0;color:inherit;cursor:pointer}
+        .nav-menu{list-style:none;margin:0;padding:0;display:flex;gap:8px;align-items:center}
+        .nav-menu>li{position:relative}
+        .nav-menu a{color:inherit;text-decoration:none;padding:8px 12px;display:block;border-radius:6px}
+        .nav-menu li:hover>a{background:var(--nav-hover)}
+        .dropdown{position:absolute;left:0;top:calc(100% + 6px);background:#fff;color:#222;min-width:160px;border-radius:8px;box-shadow:0 8px 20px rgba(0,0,0,0.12);display:none;padding:6px 0}
+        .dropdown li{list-style:none}
+        .dropdown a{color:#222;padding:8px 14px}
+        .nav-menu li:hover>.dropdown{display:block}
+        .cta{background:var(--accent);color:#fff;border-radius:6px}
+        @media (max-width:720px){
+            .mobile-toggle{display:block}
+            .nav-menu{position:absolute;right:20px;top:64px;flex-direction:column;background:#3a3f46;padding:10px;border-radius:8px;display:none}
+            .nav-menu.show{display:flex}
+            .nav-menu a{padding:10px}
+            .dropdown{position:relative;top:0;background:transparent;box-shadow:none;padding:0}
+            .dropdown a{color:#fff;padding-left:24px}
+        }
+
+        /* 主体布局 */
+        .main-wrapper{
+            min-height:calc(100vh - 56px);
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            padding:40px;
+            background:linear-gradient(135deg,#c5e8e8 0%,#e0f2f5 100%);
+            position:relative;
+            overflow:hidden;
+        }
+
+        .content-flex{
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            gap:60px;
+            max-width:1200px;
+            width:100%;
+        }
+
+        /* 左侧插画 */
+        .illustration-box{
+            flex:1;
+            max-width:520px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+        }
+        .illustration-box img{
+            max-width:100%;
+            height:auto;
+            filter:drop-shadow(0 20px 40px rgba(0,0,0,0.1));
+        }
+
+        /* 右侧卡片 */
+        .card{
+            width:440px;
+            background:#fff;
+            border-radius:16px;
+            padding:36px 40px;
+            box-shadow:0 8px 40px rgba(0,0,0,0.08);
+        }
+
+        .card-title{
+            font-size:26px;
+            font-weight:700;
+            color:#222;
+            margin:0 0 8px;
+        }
+        .card-sub{
+            font-size:14px;
+            color:#888;
+            margin:0 0 28px;
+        }
+
+        /* 表单样式 */
+        .form-table{
+            width:100%;
+            border-collapse:separate;
+            border-spacing:0 16px;
+        }
+        .form-table td{
+            padding:0;
+            vertical-align:top;
+        }
+        .form-table td:first-child{
+            width:60px;
+            color:#555;
+            font-size:14px;
+            font-weight:500;
+            padding-top:10px;
+            white-space:nowrap;
+        }
+        .form-table input[type="text"],
+        .form-table input[type="password"],
+        .form-table select{
+            width:100%;
+            padding:10px 14px;
+            border:none;
+            background:#f5f7fa;
+            border-radius:8px;
+            font-size:14px;
+            color:#333;
+            outline:none;
+            transition:box-shadow .2s;
+        }
+        .form-table input[type="text"]:focus,
+        .form-table input[type="password"]:focus,
+        .form-table select:focus{
+            box-shadow:0 0 0 2px rgba(255,107,59,.2);
+        }
+        .form-table select{
+            cursor:pointer;
+            appearance:none;
+            background-image:url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23999' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+            background-repeat:no-repeat;
+            background-position:right 12px center;
+            padding-right:32px;
+        }
+
+        /* 单选、复选 */
+        .form-table input[type="radio"],
+        .form-table input[type="checkbox"]{
+            width:16px;
+            height:16px;
+            accent-color:#ff6b35;
+            vertical-align:middle;
+            margin-right:4px;
+            cursor:pointer;
+        }
+        .form-table label{
+            font-size:14px;
+            color:#555;
+            margin-right:16px;
+            cursor:pointer;
+            vertical-align:middle;
+        }
+
+        /* 提交按钮 */
+        .submit-wrap{
+            text-align:center;
+            padding-top:8px;
+        }
+        .submit-btn{
+            width:100%;
+            padding:12px;
+            background:#ff6b35;
+            color:#fff;
+            border:none;
+            border-radius:8px;
+            font-size:16px;
+            font-weight:600;
+            cursor:pointer;
+            transition:background .2s;
+        }
+        .submit-btn:hover{
+            background:#e55a2b;
+        }
+
+        /* 响应式 */
+        @media (max-width:960px){
+            .illustration-box{display:none}
+            .content-flex{justify-content:center}
+            .card{width:100%;max-width:440px;padding:28px}
+        }
+    </style>
+<base target="_blank">
+</head>
+
+<body>
+    <header>
+        <nav class="nav" role="navigation" aria-label="主导航">
+            <div class="logo">蜗牛学院</div>
+            <button class="mobile-toggle" aria-label="菜单切换" id="navToggle">☰</button>
+            <ul class="nav-menu" id="navMenu">
+                <li><a href="https://www.woniuxy.com/" target="_blank" rel="noreferrer">首页</a></li>
+                <li>
+                    <a href="#">合作企业 ▾</a>
+                    <ul class="dropdown" aria-label="合作企业子菜单">
+                        <li><a href="https://www.alibaba.com/" target="_blank" rel="noreferrer">阿里</a></li>
+                        <li><a href="https://www.jd.com/" target="_blank" rel="noreferrer">京东</a></li>
+                    </ul>
+                </li>
+                <li><a href="#">蜗牛</a></li>
+                <li><a class="cta" href="https://www.woniuxy.com/" target="_blank" rel="noreferrer">示例网站</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="main-wrapper">
+        <div class="content-flex">
+            <div class="illustration-box">
+                <img src="img1112/Frame 265.png" alt="插画">
+            </div>
+
+            <div class="card">
+                <h2 class="card-title">欢迎回来</h2>
+                <p class="card-sub">在这里可以填写信息、了解课程与合作伙伴。</p>
+
+                <form name="input" action="https://www.itheima.com/special/brandzly2/index.html?sogoupp-heima-pinpaici-pc-x12&qz_gdt=mrvjk2qqaaag4gjjmpaq" method="get">
+                    <table class="form-table">
+                        <tr>
+                            <td>用户名</td>
+                            <td><input type="text" name="username" placeholder="请输入用户名"></td>
+                        </tr>
+                        <tr>
+                            <td>密码</td>
+                            <td><input type="password" name="password" placeholder="请输入密码"></td>
+                        </tr>
+                        <tr>
+                            <td>性别</td>
+                            <td>
+                                <label><input type="radio" name="gender" value="male"> 男</label>
+                                <label><input type="radio" name="gender" value="female"> 女</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>爱好</td>
+                            <td>
+                                <label><input type="checkbox" name="hobby" value="reading"> 阅读</label>
+                                <label><input type="checkbox" name="hobby" value="traveling"> 旅行</label>
+                                <label><input type="checkbox" name="hobby" value="sports"> 运动</label>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>省份</td>
+                            <td>
+                                <select name="city">
+                                    <option value="beijing">北京</option>
+                                    <option value="shanghai">上海</option>
+                                    <option value="guangzhou">广州</option>
+                                </select>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td colspan="2" class="submit-wrap">
+                                <input type="submit" value="提交" class="submit-btn">
+                            </td>
+                        </tr>
+                    </table>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function(){
+            const btn = document.getElementById('navToggle');
+            const menu = document.getElementById('navMenu');
+            btn.addEventListener('click',()=>{menu.classList.toggle('show')});
+        })();
+    </script>
+</body>
+</html>
+
+
+

@@ -1,0 +1,18 @@
+# 虚拟环境（138M，与本机 Python 绑定，别人用不了）
+.venv/
+
+# langchain 目录：3.4G 全是 AI 模型文件和课件，超过 GitHub 单文件 100MB 限制
+langchain/
+
+# IDE 配置（个人本机设置）
+.idea/
+.vscode/
+
+# Python 运行产物
+__pycache__/
+*.pyc
+*.pyo
+
+# 系统垃圾
+Thumbs.db
+Desktop.ini

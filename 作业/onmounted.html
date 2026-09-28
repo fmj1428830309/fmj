@@ -1,0 +1,192 @@
+<!-- <!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vue 响应式对象</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+</head>
+<body>
+    <div id="app">
+        <ol>
+            <li v-for="(item, index) in tableData" :key="index">
+                {{ item.uname }}，年龄：{{ item.age }} 岁
+            </li>
+        </ol>
+    </div>
+    <script>
+        const { createApp, reactive, onMounted } = Vue
+        const app = createApp({
+            setup() {
+                const tableData = reactive([])
+
+                onMounted(() => {
+                    setTimeout(() => {
+                        tableData.push(
+                            { uname: "张三", age: 18 },
+                            { uname: "李四", age: 20 },
+                            { uname: "王五", age: 22 }
+                        )
+                    })
+                })
+
+                return {
+                    tableData
+                }
+            }
+        })
+        app.mount("#app")
+    </script>
+     
+</body>
+</html> -->
+
+
+<!-- 下面代码升级element plus -->
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>Vue 表格增删改</title>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css">
+    <script src="https://unpkg.com/element-plus"></script>
+    <style>
+        body { font-family: 'Microsoft YaHei', sans-serif; padding: 20px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        th { background: #42b983; color: white; }
+        tr:nth-child(even) { background: #f9f9f9; }
+        input { padding: 6px; margin: 3px; width: 120px; }
+        button { padding: 5px 12px; margin: 2px; border: none; border-radius: 4px; cursor: pointer; }
+        .add-btn { background: #42b983; color: white; }
+        .edit-btn { background: #409eff; color: white; }
+        .del-btn { background: #f56c6c; color: white; }
+        .box { background: #f5f5f5; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+
+<div id="app">
+    <h2>📝 员工信息管理</h2>
+
+    <!-- 添加区域 -->
+    <div class="box">
+        <h4>添加新员工</h4>
+        <input type="text" v-model="form.uname" placeholder="姓名">
+        <input type="number" v-model="form.age" placeholder="年龄">
+        <button class="add-btn" @click="addUser">添加</button>
+        <button @click="clearForm">清空</button>
+    </div>
+
+    <!-- 表格展示 -->
+    <table>
+        <thead>
+            <tr>
+                <th>序号</th>
+                <th>姓名</th>
+                <th>年龄</th>
+                <th>操作</th>
+            </tr>
+        </thead>
+        <tbody>
+            <!-- 空数据提示 -->
+            <tr v-if="tableData.length === 0">
+                <td colspan="4" style="color:#999;">暂无数据</td>
+            </tr>
+            <!-- 遍历数据 -->
+            <tr v-for="(item, index) in tableData" :key="item.id">
+                <td>{{ index + 1 }}</td>
+                <td>{{ item.uname }}</td>
+                <td>{{ item.age }}</td>
+                <td>
+                    <button class="edit-btn" @click="editAge(index)">年龄+1</button>
+                    <button class="del-btn" @click="deleteUser(index)">删除</button>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+
+    <p style="margin-top:10px; color:#666;">总人数：{{ tableData.length }} 人</p>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue
+
+    createApp({
+        setup() {
+            // 员工列表
+            const tableData = ref([])
+
+            // 表单数据（用于添加）
+            const form = ref({
+                uname: '',
+                age: ''
+            })
+
+            // 初始化数据（模拟从后端获取）
+            const initData = () => {
+                tableData.value = [
+                    { id: 1, uname: '张三', age: 18 },
+                    { id: 2, uname: '李四', age: 20 },
+                    { id: 3, uname: '王五', age: 22 }
+                ]
+            }
+
+            // 添加员工
+            const addUser = () => {
+                if (!form.value.uname || !form.value.age) {
+                    alert('请填写完整信息')
+                    return
+                }
+                const newId = tableData.value.length > 0 
+                    ? Math.max(...tableData.value.map(item => item.id)) + 1 
+                    : 1
+                tableData.value.push({
+                    id: newId,
+                    uname: form.value.uname,
+                    age: Number(form.value.age)
+                })
+                clearForm()
+            }
+
+            // 删除员工
+            const deleteUser = (index) => {
+                if (confirm('确定删除 ' + tableData.value[index].uname + ' 吗？')) {
+                    tableData.value.splice(index, 1)
+                }
+            }
+
+            // 修改：年龄+1
+            const editAge = (index) => {
+                tableData.value[index].age++
+            }
+
+            // 清空表单
+            const clearForm = () => {
+                form.value = { uname: '', age: '' }
+            }
+
+            // 页面加载完初始化
+            onMounted(() => {
+                initData()
+            })
+
+            return {
+                tableData,
+                form,
+                addUser,
+                deleteUser,
+                editAge,
+                clearForm
+            }
+        }
+
+    }).mount("#app")
+    
+
+</script>
+
+</body>
+</html>
