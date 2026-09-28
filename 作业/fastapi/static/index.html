@@ -9,35 +9,266 @@
       <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <link rel="stylesheet" href="https://unpkg.com/element-plus/dist/index.css" />
 <!-- 3. 引入 Element Plus 组件库 -->
-    
+        <script src="//unpkg.com/element-plus"></script>
+
+    <!-- Axios：发送 HTTP 请求的库（GET/POST/PATCH/DELETE） -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 <script src="https://unpkg.com/element-plus"></script>
 </head>
 <body>
     <div id="app">
+        <el-button type="success"@click="handleAdd"style="margin-bottom: 12px">"添加用户"</el-button>
+        <el-input v-model="keyword" placeholder="输入编号或姓名查询" clearable style="width: 220px; margin-bottom: 12px; margin-left: 12px"></el-input>
+        <el-button type="primary" @click="handleSearch" style="margin-bottom: 12px">查询</el-button>
+        <el-button @click="initdata" style="margin-bottom: 12px">显示全部</el-button>
         <el-table :data="tableData" style="width: 100%">
-            <el-table-column prop="id" label="部门编号" align="center" width="80"></el-table-column>
-            <el-table-column prop="name" label="部门名称" align="center" ></el-table-column>
+            <el-table-column prop="id" label="编号" align="center" width="80"></el-table-column>
+            <el-table-column prop="name" label="名称" align="center" ></el-table-column>
             <el-table-column prop="gender" label="性别" align="center"></el-table-column>
+            <el-table-column prop="telephone" label="电话"></el-table-column>
+            <el-table-column prop="email" label="邮箱"></el-table-column>
+         <!-- ========== 操作列（每一行都有修改/删除按钮） ========== -->
+         <el-table-column label="Operations">
+             <template #default="scope">
+               <el-button size="small" @click="handleEdit(scope.$index, scope.row)">
+                        修改
+                    </el-button>
+                    <!--
+                        type="danger" = 红色危险按钮，用于删除操作
+                    -->
+                    <el-button
+                            size="small"
+                            type="danger"
+                            @click="handleDelete(scope.$index, scope.row)">
+                        删除
+                    </el-button>
+                </template>
+         </el-table-column>
         </el-table>
+        <el-dialog v-model="dialogVisible" :title="isAdd ? '添加用户' : '修改用户'" width="420px" @closed="resetForm">
+            <el-form :model="editForm" label-width="80px">
+                <el-form-item label="姓名">
+                    <el-input v-model="editForm.name" placeholder="请输入姓名"></el-input>
+                </el-form-item>
+                <el-form-item label="年龄">
+                    <el-input-number v-model="editForm.age" :min="0" :max="150" style="width: 100%"></el-input-number>
+                </el-form-item>
+                 <el-form-item label="性别">
+                    <el-radio-group v-model="editForm.sex">
+                        <el-radio value="男">男</el-radio>
+                        <el-radio value="女">女</el-radio>
+                    </el-radio-group>
+                </el-form-item>
 
+                <el-form-item label="电话">
+                    <el-input v-model="editForm.telephone" placeholder="请输入电话"></el-input>
+                </el-form-item>
+
+                <el-form-item label="邮箱">
+                    <el-input v-model="editForm.email" placeholder="请输入邮箱"></el-input>
+                </el-form-item>
+            </el-form>
+            <template #footer>
+                <!-- 取消按钮：点击直接把 dialogVisible 改成 false，弹窗关闭 -->
+                <el-button @click="dialogVisible = false">取消</el-button>
+                <el-button type="primary" @click="handleSubmit">确定</el-button>
+            </template>
+        </el-dialog>
     </div>
     <script>
-        const { createApp, ref, onMounted } = Vue
+        const { createApp, ref, reactive, onMounted } = Vue
+        const { ElMessage, ElMessageBox } = ElementPlus;
         const app = createApp({
             setup() {
                 const tableData = ref([])
+                const dialogVisible = ref(false)
+                const isAdd = ref(true)
+                const currentId = ref(null)
+                const keyword = ref('')
+                const editForm = reactive({
+                    name: '',       // 姓名
+                    age: 18,        // 年龄（默认 18）
+                    sex: '男',      // 性别（默认男）
+                    telephone: '',  // 电话
+                    email: ''       // 邮箱
+                })
                 const initdata = () => {
-                    axios.get("/dept").then((res) => {
-                        tableData.value = res.data
+                    axios.get("http://127.0.0.1:8001/user").then((res) => {
+                        tableData.value = res.data.data || []
                     })
                 }
+                const resetForm =()=>{
+                    currentId.value=null
+                    editForm.name=''
+                    editForm.age=18
+                    editForm.sex='男'
+                    editForm.telephone = ''         // 清空电话
+                    editForm.email = ''
+
+                }
+                const handleAdd = () => {
+                    isAdd.value = true              // 标记为添加模式
+                    resetForm()                     // 重置所有字段
+                    dialogVisible.value = true      // 打开弹窗
+                }
+                const handleEdit = (index, row) => {
+                    isAdd.value = false             // 标记为修改模式
+                    currentId.value = row.id        // 记录被编辑用户的 ID
+                    // 把行数据逐一填入表单
+                    editForm.name = row.name
+                    editForm.age = row.age
+                    editForm.sex = row.sex
+                    editForm.telephone = row.telephone
+                    editForm.email = row.email
+                    dialogVisible.value = true      // 打开弹窗
+                }
+                const  handleSubmit=()=>{
+                    if (isAdd.value) {
+                        const postData = {
+
+                            name: editForm.name,
+                            age: editForm.age,
+                            sex: editForm.sex,
+                            telephone: editForm.telephone,
+                            email: editForm.email
+                        }
+                        axios.post("http://127.0.0.1:8001/user", postData).then((res) => {
+                            // 后端新增成功返回 code=201（Created，已创建）
+                            if (res.data.code === 200 || res.data.code === 201) {
+                                ElMessage.success('添加成功')   // 弹出绿色成功提示
+                                dialogVisible.value = false    // 关闭弹窗
+                                initdata()                     // 刷新表格数据
+                            } else {
+                                ElMessage.error(res.data.msg || '添加失败')  // 弹出红色错误提示
+                            }
+                        }).catch((err) => {
+                            // catch = 捕获异常（网络错误、服务器 500 等）
+                            // err.response = 服务器返回的错误响应
+                            // ?. = 可选链操作符，err.response 为 null 时不会报错
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+                    } else {
+                        // 构造局部更新数据（patch = 补丁，只改传过去的字段）
+                        const patchData = {}
+                        // 只把有值的字段放进请求体，空字段不传
+                        if (editForm.name) patchData.name = editForm.name
+                        if (editForm.age !== null && editForm.age !== undefined) patchData.age = editForm.age
+                        if (editForm.sex) patchData.sex = editForm.sex
+                        if (editForm.telephone) patchData.telephone = editForm.telephone
+                        if (editForm.email) patchData.email = editForm.email
+
+                        // 模板字符串：`...${变量}...`  等价于 ".../user/" + currentId.value
+                        // axios.patch(url, data) = 发送 PATCH 请求（局部更新）
+                        axios.patch(`http://127.0.0.1:8001/user/${currentId.value}`, patchData).then((res) => {
+                            if (res.data.code === 200) {
+                                ElMessage.success('修改成功')
+                                dialogVisible.value = false
+                                initdata()
+                            } else {
+                                ElMessage.error(res.data.msg || '修改失败')
+                            }
+                        }).catch((err) => {
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+                    }
+                }
+                const handleDelete = (index, row) => {
+                    ElMessageBox.confirm(
+                        // 反引号 `` 是模板字符串，${} 嵌入变量
+                        `确定要删除「${row.name}」吗？此操作不可恢复。`,
+                        '确认删除',
+                        {
+                            confirmButtonText: '确定',
+                            cancelButtonText: '取消',
+                            type: 'warning'
+                        }
+                    ).then(() => {
+                        // 用户点了确定 → 发送 DELETE 请求
+                        // axios.delete(url) = 发送 DELETE 请求
+                        axios.delete(`http://127.0.0.1:8001/user/${row.id}`).then((res) => {
+                            if (res.data.code === 200) {
+                                ElMessage.success('删除成功')
+                                initdata()                 // 刷新列表
+                            } else {
+                                ElMessage.error(res.data.msg || '删除失败')
+                            }
+                        }).catch((err) => {
+                            ElMessage.error(err.response?.data?.msg || '请求失败')
+                        })
+                    }).catch(() => {
+                        // 用户点了取消或关闭了弹窗 → 什么也不做
+                    })
+                }
+                const handleSearch = () => {
+                    const kw = keyword.value.trim()
+                    if (!kw) {
+                        // 没输入就显示全部
+                        initdata()
+                        return
+                    }
+                    // 判断是纯数字还是文字
+                    if (/^\d+$/.test(kw)) {
+                        // 纯数字 → 按编号查
+                        axios.get("http://127.0.0.1:8001/user/" + kw).then((res) => {
+                            if (res.data.code === 200) {
+                                tableData.value = res.data.data ? [res.data.data] : []
+                            } else {
+                                ElMessage.error(res.data.msg || '未找到')
+                            }
+                        }).catch(() => {
+                            ElMessage.error('未找到该用户')
+                        })
+                    } else {
+                        // 文字 → 按姓名模糊查
+                        axios.get("http://127.0.0.1:8001/user/by-name/" + kw).then((res) => {
+                            if (res.data.code === 200) {
+                                tableData.value = res.data.data || []
+                            } else {
+                                ElMessage.error(res.data.msg || '未找到')
+                            }
+                        }).catch(() => {
+                            ElMessage.error('请求失败')
+                        })
+                    }
+                }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
                 onMounted (() => {
                     initdata()
+
                 }
             )
                 return {
-                    tableData
 
+                    tableData,
+                    dialogVisible,
+                    isAdd,
+                    editForm,
+                    keyword,
+                    handleAdd,
+                    handleEdit,
+                    handleDelete,
+                    handleSubmit,
+                    handleSearch,
+                    initdata,
+                    resetForm
                 }
             }
         })
